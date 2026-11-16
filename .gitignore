@@ -32,3 +32,6 @@ target/
 *.o
 *.obj
 .DS_Store
+
+# 本地 SQLite 测试库
+*.db

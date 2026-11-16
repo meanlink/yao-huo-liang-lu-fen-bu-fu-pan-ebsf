@@ -5,6 +5,7 @@ from migrations.initial import migrate
 from src.models import User, Dataset, Job, Report, Delivery, Audit
 from src.services.business import metadata, seed_records, analyze
 from src.services.reports import deliver
+from scripts.seed_trace_demo import seed as seed_trace
 from src.utils.security import hash_password
 from src.utils.serialization import checksum
 def seed():
@@ -31,6 +32,13 @@ def seed():
             r=Report(name='每日业务复核简报',job_id=j.id,destination='业务复核组 · 本地收件箱',interval_seconds=86400,next_run=time.time()+86400,enabled=True)
             db.add(r);db.flush();deliver(db,r)
             db.add(Audit(actor='seed',action='demo.baseline',detail={'dataset':d.id},at=time.time()))
+        # 釉料追溯与召回演示数据（内部按自然键幂等，不覆盖用户修改）
+        db.commit()
+        try:
+            seed_trace()
+        except Exception:
+            import logging
+            logging.exception('Trace demo seed failed; core demo remains available')
         db.commit()
         counts={model.__tablename__:db.scalar(select(func.count()).select_from(model)) for model in [User,Dataset,Job,Report,Delivery,Audit]}
         print(json.dumps(counts,ensure_ascii=False))
